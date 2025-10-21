@@ -11,8 +11,8 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      token: null,
-      isAuthenticated: false,
+      token: null as string | null,
+      isAuthenticated: false as boolean,
       login: (token: string) => {
         localStorage.setItem('admin_token', token)
         set({ token, isAuthenticated: true })

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { TrendingUp, Users, Bell, AlertTriangle } from 'lucide-react'
 
 export function Dashboard() {
@@ -20,13 +20,7 @@ export function Dashboard() {
     },
   })
 
-  const { data: usersData } = useQuery({
-    queryKey: ['users'],
-    queryFn: async () => {
-      const { data } = await api.get('/admin/users')
-      return data
-    },
-  })
+  // Removed unused usersData query for now
 
   const stats = [
     {
@@ -104,7 +98,7 @@ export function Dashboard() {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, value }) => `${name}: ${value}`}
+                label
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"

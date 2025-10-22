@@ -20,7 +20,7 @@ export function Alerts() {
   const [severityFilter, setSeverityFilter] = useState<string>('all')
   const queryClient = useQueryClient()
 
-  const { data: alerts, isLoading } = useQuery({
+  const { data: alerts, isLoading, error } = useQuery({
     queryKey: ['alerts'],
     queryFn: async () => {
       console.log('Fetching alerts from:', import.meta.env.VITE_API_URL || 'http://localhost:3000')
@@ -29,6 +29,11 @@ export function Alerts() {
       return data as Alert[]
     },
   })
+
+  // Log any errors
+  if (error) {
+    console.error('Error fetching alerts:', error)
+  }
 
   const deleteAlertMutation = useMutation({
     mutationFn: async (alertId: string) => {
@@ -133,7 +138,17 @@ export function Alerts() {
 
       {/* Alerts Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        {isLoading ? (
+        {error ? (
+          <div className="p-8 text-center">
+            <div className="text-red-600 font-medium">Error loading alerts</div>
+            <div className="text-sm text-gray-500 mt-2">
+              {error instanceof Error ? error.message : 'Unknown error occurred'}
+            </div>
+            <div className="text-xs text-gray-400 mt-2">
+              Check the browser console for more details
+            </div>
+          </div>
+        ) : isLoading ? (
           <div className="p-8 text-center">
             <div className="text-gray-500">Loading alerts...</div>
             <div className="text-xs text-gray-400 mt-2">

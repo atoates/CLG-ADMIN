@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
-import { TrendingUp, Users, Bell, AlertTriangle } from 'lucide-react'
+import { TrendingUp, Users, Bell, AlertTriangle, Database, HardDrive, Server, Activity } from 'lucide-react'
 
 export function Dashboard() {
   const { data: adminInfo } = useQuery({
@@ -131,6 +131,100 @@ export function Dashboard() {
             <div className="flex justify-between py-2">
               <span className="text-gray-600">Auto Restore</span>
               <span className="font-medium">{adminInfo?.restoreFromFile ? 'Enabled' : 'Disabled'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Database Details Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Database Storage */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <Database className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Database Storage</h3>
+              <p className="text-sm text-gray-500">PostgreSQL on Railway</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Total Records</span>
+              <span className="font-medium text-gray-900">
+                {(adminInfo?.counts?.alerts || 0) + (adminInfo?.counts?.users || 0) + (adminInfo?.counts?.user_prefs || 0)}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Alerts</span>
+              <span className="font-medium text-gray-900">{adminInfo?.counts?.alerts || 0}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Users</span>
+              <span className="font-medium text-gray-900">{adminInfo?.counts?.users || 0}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Preferences</span>
+              <span className="font-medium text-gray-900">{adminInfo?.counts?.user_prefs || 0}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Directory */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-green-50 p-3 rounded-lg">
+              <HardDrive className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Data Directory</h3>
+              <p className="text-sm text-gray-500">File storage location</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <span className="text-xs text-gray-500 block mb-1">Path</span>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded block overflow-x-auto">
+                {adminInfo?.dataDir || '/app/data'}
+              </code>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500 block mb-1">Backup Directory</span>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded block overflow-x-auto">
+                {adminInfo?.backupDir || '/app/data/backups'}
+              </code>
+            </div>
+          </div>
+        </div>
+
+        {/* Server Status */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-purple-50 p-3 rounded-lg">
+              <Server className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Server Status</h3>
+              <p className="text-sm text-gray-500">Backend health</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-green-600">Online</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Database</span>
+              <span className="font-medium text-green-600">
+                {adminInfo?.databaseUrl ? 'Connected' : 'Not configured'}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">API Provider</span>
+              <span className="font-medium text-gray-900">
+                {adminInfo?.market?.provider ? 'Active' : 'Inactive'}
+              </span>
             </div>
           </div>
         </div>

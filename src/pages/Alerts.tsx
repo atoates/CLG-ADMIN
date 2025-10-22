@@ -229,7 +229,11 @@ export function Alerts() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {alert.deadline ? new Date(alert.deadline).toLocaleDateString() : 'N/A'}
+                      {alert.deadline ? new Date(alert.deadline).toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      }) : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">

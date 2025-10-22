@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import { Bell, Search, Filter, Plus, Pencil, Trash2, AlertTriangle, Info, AlertCircle, X } from 'lucide-react'
+import { Bell, Search, Filter, Plus, Pencil, Trash2, AlertTriangle, Info, AlertCircle, X, Upload, Download, FileText } from 'lucide-react'
 
 interface Alert {
   id: string
@@ -21,6 +21,10 @@ export function Alerts() {
   const [severityFilter, setSeverityFilter] = useState<string>('all')
   const [editingAlert, setEditingAlert] = useState<Alert | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
+  const [uploadMessage, setUploadMessage] = useState('')
   const queryClient = useQueryClient()
 
   const { data: alerts, isLoading, error } = useQuery({
@@ -57,6 +61,80 @@ export function Alerts() {
       setEditingAlert(null)
     },
   })
+
+  const bulkUploadMutation = useMutation({
+    mutationFn: async (alerts: Partial<Alert>[]) => {
+      const { data } = await api.post('/api/alerts/bulk', { alerts })
+      return data
+    },
+    onSuccess: (data) => {
+      setUploadStatus('success')
+      setUploadMessage(`Successfully imported ${data.imported} alerts`)
+      queryClient.invalidateQueries({ queryKey: ['alerts'] })
+      setTimeout(() => {
+        setIsUploadModalOpen(false)
+        setUploadStatus('idle')
+        setUploadFile(null)
+      }, 3000)
+    },
+    onError: (error: any) => {
+      setUploadStatus('error')
+      setUploadMessage(error.response?.data?.error || 'Failed to upload alerts')
+    },
+  })
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setUploadFile(file)
+      setUploadStatus('idle')
+    }
+  }
+
+  const handleUpload = async () => {
+    if (!uploadFile) return
+
+    setUploadStatus('uploading')
+    const reader = new FileReader()
+
+    reader.onload = async (e) => {
+      try {
+        const text = e.target?.result as string
+        let alerts: Partial<Alert>[]
+
+        if (uploadFile.name.endsWith('.json')) {
+          alerts = JSON.parse(text)
+        } else if (uploadFile.name.endsWith('.csv')) {
+          // Simple CSV parser (assumes header row)
+          const lines = text.split('\n').filter(line => line.trim())
+          const headers = lines[0].split(',').map(h => h.trim())
+          alerts = lines.slice(1).map(line => {
+            const values = line.split(',').map(v => v.trim())
+            const alert: any = {}
+            headers.forEach((header, i) => {
+              alert[header] = values[i]
+            })
+            return alert
+          })
+        } else {
+          setUploadStatus('error')
+          setUploadMessage('Invalid file format. Use JSON or CSV.')
+          return
+        }
+
+        bulkUploadMutation.mutate(alerts)
+      } catch (error) {
+        setUploadStatus('error')
+        setUploadMessage('Failed to parse file')
+      }
+    }
+
+    reader.readAsText(uploadFile)
+  }
+
+  const handleExportCSV = () => {
+    window.open(`${import.meta.env.VITE_API_URL}/admin/export/alerts.csv`, '_blank')
+  }
 
   const handleEditClick = (alert: Alert) => {
     setEditingAlert(alert)
@@ -113,13 +191,29 @@ export function Alerts() {
             Manage security alerts and notifications for all tokens
           </p>
         </div>
-        <button
-          onClick={() => alert('Create alert functionality coming soon!')}
-          className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition"
-        >
-          <Plus className="w-5 h-5" />
-          Create Alert
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsUploadModalOpen(true)}
+            className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg border border-gray-300 transition"
+          >
+            <Upload className="w-5 h-5" />
+            Bulk Upload
+          </button>
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg border border-gray-300 transition"
+          >
+            <Download className="w-5 h-5" />
+            Export CSV
+          </button>
+          <button
+            onClick={() => alert('Create alert functionality coming soon!')}
+            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition"
+          >
+            <Plus className="w-5 h-5" />
+            Create Alert
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -436,6 +530,127 @@ export function Alerts() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Upload Modal */}
+      {isUploadModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+            <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
+              <h2 className="text-xl font-semibold text-gray-900">Bulk Upload Alerts</h2>
+              <button
+                onClick={() => {
+                  setIsUploadModalOpen(false)
+                  setUploadFile(null)
+                  setUploadStatus('idle')
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex gap-3">
+                  <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-900">
+                    <p className="font-medium mb-2">Upload Format Requirements:</p>
+                    <ul className="list-disc list-inside space-y-1 text-blue-800">
+                      <li><strong>JSON:</strong> Array of alert objects with fields: token, title, description, severity, deadline</li>
+                      <li><strong>CSV:</strong> Header row with columns: token, title, description, severity, deadline</li>
+                      <li><strong>Severity:</strong> Must be one of: info, warning, critical</li>
+                      <li><strong>Deadline:</strong> ISO 8601 date format (YYYY-MM-DDTHH:mm:ss.sssZ)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sample Download */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Download Sample Template
+                </label>
+                <button
+                  onClick={handleExportCSV}
+                  className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  <Download className="w-4 h-4" />
+                  Download current alerts as CSV template
+                </button>
+              </div>
+
+              {/* File Upload */}
+              <div>
+                <label htmlFor="file-upload" className="block text-sm font-medium text-gray-700 mb-2">
+                  Select File
+                </label>
+                <div className="flex items-center gap-4">
+                  <label
+                    htmlFor="file-upload"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 cursor-pointer transition"
+                  >
+                    <FileText className="w-8 h-8 text-gray-400" />
+                    <div className="text-center">
+                      <span className="text-gray-600">
+                        {uploadFile ? uploadFile.name : 'Choose a JSON or CSV file'}
+                      </span>
+                      <p className="text-xs text-gray-500 mt-1">
+                        or drag and drop
+                      </p>
+                    </div>
+                    <input
+                      id="file-upload"
+                      type="file"
+                      accept=".json,.csv"
+                      onChange={handleFileChange}
+                      className="sr-only"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Status Message */}
+              {uploadStatus !== 'idle' && (
+                <div className={`p-4 rounded-lg flex items-center gap-3 ${
+                  uploadStatus === 'success' ? 'bg-green-50 text-green-800' :
+                  uploadStatus === 'error' ? 'bg-red-50 text-red-800' :
+                  'bg-blue-50 text-blue-800'
+                }`}>
+                  {uploadStatus === 'success' && <Info className="w-5 h-5" />}
+                  {uploadStatus === 'error' && <AlertCircle className="w-5 h-5" />}
+                  {uploadStatus === 'uploading' && (
+                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  )}
+                  <span className="font-medium">{uploadMessage || 'Processing...'}</span>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsUploadModalOpen(false)
+                    setUploadFile(null)
+                    setUploadStatus('idle')
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpload}
+                  disabled={!uploadFile || uploadStatus === 'uploading'}
+                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uploadStatus === 'uploading' ? 'Uploading...' : 'Upload Alerts'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

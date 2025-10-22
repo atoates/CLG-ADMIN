@@ -1,5 +1,15 @@
 # CLG-ADMIN Railway Deployment
 
+## Prerequisites
+
+### Node.js Version Requirement
+This project requires **Node.js 20+** because:
+- Vite 7 requires Node 20.19+ or 22.12+
+- React Router 7 requires Node 20+
+- @vitejs/plugin-react-swc 4.x requires Node 20+
+
+The `nixpacks.toml` file ensures Railway uses Node.js 20 automatically.
+
 ## Setup Instructions
 
 ### 1. Create New Railway Service

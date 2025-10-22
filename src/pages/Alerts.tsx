@@ -1,23 +1,26 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import { Bell, Search, Filter, Plus, Pencil, Trash2, AlertTriangle, Info, AlertCircle } from 'lucide-react'
+import { Bell, Search, Filter, Plus, Pencil, Trash2, AlertTriangle, Info, AlertCircle, X } from 'lucide-react'
 
 interface Alert {
   id: string
-  token_address: string
-  token_name: string
-  token_symbol: string
-  severity: 'info' | 'warning' | 'critical'
+  token: string
   title: string
   description: string
-  created_at: string
-  updated_at: string
+  severity: 'info' | 'warning' | 'critical'
+  deadline: string
+  tags?: string[]
+  further_info?: string
+  source_type?: string
+  source_url?: string
 }
 
 export function Alerts() {
   const [searchTerm, setSearchTerm] = useState('')
   const [severityFilter, setSeverityFilter] = useState<string>('all')
+  const [editingAlert, setEditingAlert] = useState<Alert | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const queryClient = useQueryClient()
 
   const { data: alerts, isLoading, error } = useQuery({
@@ -44,10 +47,33 @@ export function Alerts() {
     },
   })
 
+  const updateAlertMutation = useMutation({
+    mutationFn: async (alert: Alert) => {
+      await api.put(`/api/alerts/${alert.id}`, alert)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] })
+      setIsEditModalOpen(false)
+      setEditingAlert(null)
+    },
+  })
+
+  const handleEditClick = (alert: Alert) => {
+    setEditingAlert(alert)
+    setIsEditModalOpen(true)
+  }
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (editingAlert) {
+      updateAlertMutation.mutate(editingAlert)
+    }
+  }
+
   const filteredAlerts = alerts?.filter((alert) => {
     const matchesSearch = 
       alert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      alert.token_symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      alert.token.toLowerCase().includes(searchTerm.toLowerCase()) ||
       alert.description.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesSeverity = severityFilter === 'all' || alert.severity === severityFilter
@@ -191,24 +217,26 @@ export function Alerts() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{alert.token_symbol}</div>
-                      <div className="text-xs text-gray-500">{alert.token_name}</div>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{alert.token}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{alert.title}</div>
+                      <div className="text-sm font-medium text-gray-900 max-w-xs">{alert.title}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-600 max-w-md truncate">
+                      <div className="text-sm text-gray-600 max-w-md line-clamp-2">
                         {alert.description}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(alert.created_at).toLocaleDateString()}
+                      {alert.deadline ? new Date(alert.deadline).toLocaleDateString() : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="text-primary-600 hover:text-primary-900">
+                        <button
+                          onClick={() => handleEditClick(alert)}
+                          className="text-primary-600 hover:text-primary-900"
+                        >
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
@@ -236,6 +264,177 @@ export function Alerts() {
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {isEditModalOpen && editingAlert && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">Edit Alert</h2>
+              <button
+                onClick={() => {
+                  setIsEditModalOpen(false)
+                  setEditingAlert(null)
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              {/* Token */}
+              <div>
+                <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
+                  Token Symbol
+                </label>
+                <input
+                  id="token"
+                  type="text"
+                  value={editingAlert.token}
+                  onChange={(e) => setEditingAlert({ ...editingAlert, token: e.target.value.toUpperCase() })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  required
+                />
+              </div>
+
+              {/* Title */}
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                  Title
+                </label>
+                <input
+                  id="title"
+                  type="text"
+                  value={editingAlert.title}
+                  onChange={(e) => setEditingAlert({ ...editingAlert, title: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  value={editingAlert.description}
+                  onChange={(e) => setEditingAlert({ ...editingAlert, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+                  required
+                />
+              </div>
+
+              {/* Severity */}
+              <div>
+                <label htmlFor="severity" className="block text-sm font-medium text-gray-700 mb-1">
+                  Severity
+                </label>
+                <select
+                  id="severity"
+                  value={editingAlert.severity}
+                  onChange={(e) => setEditingAlert({ ...editingAlert, severity: e.target.value as Alert['severity'] })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  required
+                >
+                  <option value="info">Info</option>
+                  <option value="warning">Warning</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+
+              {/* Deadline */}
+              <div>
+                <label htmlFor="deadline" className="block text-sm font-medium text-gray-700 mb-1">
+                  Deadline
+                </label>
+                <input
+                  id="deadline"
+                  type="datetime-local"
+                  value={editingAlert.deadline ? new Date(editingAlert.deadline).toISOString().slice(0, 16) : ''}
+                  onChange={(e) => setEditingAlert({ ...editingAlert, deadline: new Date(e.target.value).toISOString() })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  required
+                />
+              </div>
+
+              {/* Further Info */}
+              <div>
+                <label htmlFor="further_info" className="block text-sm font-medium text-gray-700 mb-1">
+                  Further Information (Optional)
+                </label>
+                <textarea
+                  id="further_info"
+                  value={editingAlert.further_info || ''}
+                  onChange={(e) => setEditingAlert({ ...editingAlert, further_info: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+                  placeholder="Additional details or context..."
+                />
+              </div>
+
+              {/* Source Type */}
+              <div>
+                <label htmlFor="source_type" className="block text-sm font-medium text-gray-700 mb-1">
+                  Source Type (Optional)
+                </label>
+                <select
+                  id="source_type"
+                  value={editingAlert.source_type || ''}
+                  onChange={(e) => setEditingAlert({ ...editingAlert, source_type: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                >
+                  <option value="">Select source type...</option>
+                  <option value="anonymous">Anonymous</option>
+                  <option value="mainstream-media">Mainstream Media</option>
+                  <option value="trusted-source">Trusted Source</option>
+                  <option value="social-media">Social Media</option>
+                  <option value="dev-team">Dev Team</option>
+                </select>
+              </div>
+
+              {/* Source URL */}
+              <div>
+                <label htmlFor="source_url" className="block text-sm font-medium text-gray-700 mb-1">
+                  Source URL (Optional)
+                </label>
+                <input
+                  id="source_url"
+                  type="url"
+                  value={editingAlert.source_url || ''}
+                  onChange={(e) => setEditingAlert({ ...editingAlert, source_url: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  placeholder="https://..."
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditModalOpen(false)
+                    setEditingAlert(null)
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateAlertMutation.isPending}
+                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {updateAlertMutation.isPending ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -7,7 +7,8 @@ import {
   FileText, 
   Activity, 
   Settings, 
-  LogOut 
+  LogOut,
+  Newspaper
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
@@ -22,6 +23,7 @@ export function Layout({ children }: LayoutProps) {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Alerts', href: '/alerts', icon: Bell },
+    { name: 'News Feed', href: '/news', icon: Newspaper },
     { name: 'Users', href: '/users', icon: Users },
     { name: 'Token Requests', href: '/token-requests', icon: FileText },
     { name: 'Audit Log', href: '/audit-log', icon: Activity },

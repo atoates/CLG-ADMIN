@@ -9,6 +9,7 @@ import { Users } from './pages/Users'
 import { TokenRequests } from './pages/TokenRequests'
 import { AuditLog } from './pages/AuditLog'
 import { Settings } from './pages/Settings'
+import { NewsFeed } from './pages/NewsFeed'
 
 const queryClient = new QueryClient()
 
@@ -39,6 +40,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Alerts />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/news"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <NewsFeed />
                 </Layout>
               </ProtectedRoute>
             }

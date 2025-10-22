@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { LogIn } from 'lucide-react'
 
@@ -6,6 +7,7 @@ export function Login() {
   const [token, setToken] = useState('')
   const [error, setError] = useState('')
   const { login } = useAuthStore()
+  const navigate = useNavigate()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -15,9 +17,9 @@ export function Login() {
       return
     }
 
-    // In a real app, you'd verify the token with the backend
-    // For now, we'll just store it
+    // Store the token and redirect to dashboard
     login(token)
+    navigate('/')
   }
 
   return (

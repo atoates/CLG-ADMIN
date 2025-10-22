@@ -23,7 +23,9 @@ export function Alerts() {
   const { data: alerts, isLoading } = useQuery({
     queryKey: ['alerts'],
     queryFn: async () => {
+      console.log('Fetching alerts from:', import.meta.env.VITE_API_URL || 'http://localhost:3000')
       const { data } = await api.get('/api/alerts')
+      console.log('Alerts response:', data)
       return data as Alert[]
     },
   })
@@ -132,7 +134,12 @@ export function Alerts() {
       {/* Alerts Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-gray-500">Loading alerts...</div>
+          <div className="p-8 text-center">
+            <div className="text-gray-500">Loading alerts...</div>
+            <div className="text-xs text-gray-400 mt-2">
+              API: {import.meta.env.VITE_API_URL || 'http://localhost:3000'}
+            </div>
+          </div>
         ) : filteredAlerts && filteredAlerts.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">

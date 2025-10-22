@@ -118,19 +118,19 @@ export function Dashboard() {
           <div className="space-y-3">
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-600">Database</span>
-              <span className="font-medium">{adminInfo?.databaseUrl ? 'PostgreSQL' : 'Not configured'}</span>
+              <span className="font-medium">{adminInfo?.counts ? 'PostgreSQL' : 'Not configured'}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-600">Market Provider</span>
-              <span className="font-medium">{adminInfo?.market?.provider?.toUpperCase() || 'None'}</span>
+              <span className="font-medium">CoinMarketCap</span>
             </div>
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-600">Currency</span>
-              <span className="font-medium">{adminInfo?.market?.currency || 'USD'}</span>
+              <span className="font-medium">USD</span>
             </div>
             <div className="flex justify-between py-2">
-              <span className="text-gray-600">Auto Restore</span>
-              <span className="font-medium">{adminInfo?.restoreFromFile ? 'Enabled' : 'Disabled'}</span>
+              <span className="text-gray-600">News API</span>
+              <span className="font-medium">CryptoNews</span>
             </div>
           </div>
         </div>
@@ -217,13 +217,13 @@ export function Dashboard() {
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Database</span>
               <span className="font-medium text-green-600">
-                {adminInfo?.databaseUrl ? 'Connected' : 'Not configured'}
+                {adminInfo?.counts ? 'Connected' : 'Not configured'}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">API Provider</span>
-              <span className="font-medium text-gray-900">
-                {adminInfo?.market?.provider ? 'Active' : 'Inactive'}
+              <span className="font-medium text-green-600">
+                {adminInfo?.counts ? 'Active' : 'Inactive'}
               </span>
             </div>
           </div>

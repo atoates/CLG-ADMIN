@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
+import { fetchNewsStats } from '../lib/api'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
-import { TrendingUp, Users, Bell, AlertTriangle, Database, HardDrive, Server, Activity } from 'lucide-react'
+import { Users, Bell, AlertTriangle, Database, HardDrive, Server, Activity, Newspaper } from 'lucide-react'
 
 export function Dashboard() {
   const { data: adminInfo } = useQuery({
@@ -20,7 +21,10 @@ export function Dashboard() {
     },
   })
 
-  // Removed unused usersData query for now
+  const { data: newsStats } = useQuery({
+    queryKey: ['news-stats'],
+    queryFn: fetchNewsStats,
+  })
 
   const stats = [
     {
@@ -45,9 +49,9 @@ export function Dashboard() {
       bgColor: 'bg-red-50',
     },
     {
-      name: 'Preferences Saved',
-      value: adminInfo?.counts?.user_prefs || 0,
-      icon: TrendingUp,
+      name: 'News Articles',
+      value: newsStats?.totalCached || 0,
+      icon: Newspaper,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
     },
@@ -129,11 +133,61 @@ export function Dashboard() {
               <span className="font-medium">USD</span>
             </div>
             <div className="flex justify-between py-2">
-              <span className="text-gray-600">News API</span>
-              <span className="font-medium">CryptoNews</span>
+              <span className="text-gray-600">News Source</span>
+              <span className="font-medium">CoinDesk RSS</span>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* News Cache Section */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="bg-purple-50 p-3 rounded-lg">
+              <Newspaper className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">News Cache Statistics</h2>
+              <p className="text-sm text-gray-500">Articles cached from CoinDesk</p>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div>
+            <p className="text-sm text-gray-600 mb-1">Total Cached</p>
+            <p className="text-2xl font-bold text-gray-900">{newsStats?.totalCached || 0}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600 mb-1">Expiring Soon (7d)</p>
+            <p className="text-2xl font-bold text-orange-600">{newsStats?.expiringSoon || 0}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600 mb-1">Average Age</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {newsStats?.avgAgeSeconds ? Math.round(newsStats.avgAgeSeconds / 86400) : 0}d
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600 mb-1">Unique Tokens</p>
+            <p className="text-2xl font-bold text-gray-900">{newsStats?.byToken?.length || 0}</p>
+          </div>
+        </div>
+        {newsStats?.byToken && newsStats.byToken.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <p className="text-sm font-medium text-gray-700 mb-3">Top Tokens in News</p>
+            <div className="flex flex-wrap gap-2">
+              {newsStats.byToken.slice(0, 10).map((item) => (
+                <span
+                  key={item.token}
+                  className="px-3 py-1 bg-primary-100 text-primary-700 text-sm font-medium rounded-full"
+                >
+                  {item.token}: {item.count}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Database Details Section */}

@@ -12,6 +12,7 @@ export interface NewsArticle {
   image_url: string | null
   expires_at: string            // ISO datetime
   created_at: string            // ISO datetime
+  alert_created?: boolean       // Whether an alert has been created from this article
 }
 
 export interface Alert {

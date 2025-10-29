@@ -103,6 +103,7 @@ export async function createAlert(alert: {
   severity: 'critical' | 'warning' | 'info'
   tags?: string[]
   deadline?: string
+  source_url?: string  // Add source URL to track which news article this came from
 }): Promise<any> {
   const { data } = await api.post('/admin/alerts', alert)
   return data

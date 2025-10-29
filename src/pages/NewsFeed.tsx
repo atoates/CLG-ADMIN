@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Newspaper, RefreshCw, Trash2, Edit2, Search, Filter, X, Save } from 'lucide-react'
-import { fetchNewsCache, fetchNewsStats, updateNewsArticle, deleteNewsArticle, refreshNewsCache } from '../lib/api'
+import { Newspaper, RefreshCw, Trash2, Edit2, Search, Filter, X, Save, Bell } from 'lucide-react'
+import { fetchNewsCache, fetchNewsStats, updateNewsArticle, deleteNewsArticle, refreshNewsCache, createAlert } from '../lib/api'
 import type { NewsArticle } from '../types'
 
 export function NewsFeed() {
@@ -9,11 +9,20 @@ export function NewsFeed() {
   const [selectedToken, setSelectedToken] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
   const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null)
+  const [creatingAlert, setCreatingAlert] = useState<NewsArticle | null>(null)
   const [editForm, setEditForm] = useState({
     title: '',
     text: '',
     sentiment: '' as 'positive' | 'neutral' | 'negative' | '',
     tickers: [] as string[],
+  })
+  const [alertForm, setAlertForm] = useState({
+    token: '',
+    title: '',
+    body: '',
+    severity: 'info' as 'critical' | 'warning' | 'info',
+    tags: [] as string[],
+    deadline: '',
   })
 
   // Fetch news articles
@@ -53,6 +62,16 @@ export function NewsFeed() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['news-cache'] })
       queryClient.invalidateQueries({ queryKey: ['news-stats'] })
+    },
+  })
+
+  // Create alert mutation
+  const createAlertMutation = useMutation({
+    mutationFn: createAlert,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] })
+      setCreatingAlert(null)
+      alert('Alert created successfully!')
     },
   })
 
@@ -98,6 +117,33 @@ export function NewsFeed() {
     if (confirm('Are you sure you want to delete this article from cache?')) {
       deleteMutation.mutate(articleUrl)
     }
+  }
+
+  // Handle create alert from news
+  const handleCreateAlert = (article: NewsArticle) => {
+    setCreatingAlert(article)
+    // Pre-populate form with article data
+    setAlertForm({
+      token: article.tickers[0] || '',
+      title: article.title,
+      body: `${article.text || ''}\n\nSource: ${article.article_url}`,
+      severity: article.sentiment === 'negative' ? 'warning' : 'info',
+      tags: article.sentiment === 'negative' ? ['news', 'warning'] : ['news'],
+      deadline: '',
+    })
+  }
+
+  const handleSaveAlert = () => {
+    if (!creatingAlert || !alertForm.token || !alertForm.title) return
+    
+    createAlertMutation.mutate({
+      token: alertForm.token,
+      title: alertForm.title,
+      body: alertForm.body,
+      severity: alertForm.severity,
+      tags: alertForm.tags,
+      deadline: alertForm.deadline || undefined,
+    })
   }
 
   const formatDate = (dateStr: string) => {
@@ -234,6 +280,13 @@ export function NewsFeed() {
                   </div>
                   <div className="flex gap-2">
                     <button
+                      onClick={() => handleCreateAlert(article)}
+                      className="p-2 text-gray-600 hover:text-green-600 hover:bg-gray-100 rounded"
+                      title="Create alert from this article"
+                    >
+                      <Bell className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handleEdit(article)}
                       className="p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded"
                       title="Edit article"
@@ -331,6 +384,115 @@ export function NewsFeed() {
               >
                 <Save className="w-4 h-4" />
                 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Alert Modal */}
+      {creatingAlert && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Create Alert from News</h2>
+              <button
+                onClick={() => setCreatingAlert(null)}
+                className="p-2 text-gray-600 hover:text-gray-900"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Token <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={alertForm.token}
+                  onChange={(e) => setAlertForm({ ...alertForm, token: e.target.value.toUpperCase() })}
+                  placeholder="BTC, ETH, SOL..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Select from tickers: {creatingAlert.tickers.join(', ') || 'None'}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Alert Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={alertForm.title}
+                  onChange={(e) => setAlertForm({ ...alertForm, title: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Alert Body</label>
+                <textarea
+                  value={alertForm.body}
+                  onChange={(e) => setAlertForm({ ...alertForm, body: e.target.value })}
+                  rows={6}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="Alert description and source URL..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Severity</label>
+                <select
+                  value={alertForm.severity}
+                  onChange={(e) => setAlertForm({ ...alertForm, severity: e.target.value as any })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="info">Info</option>
+                  <option value="warning">Warning</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tags (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={alertForm.tags.join(', ')}
+                  onChange={(e) => setAlertForm({ 
+                    ...alertForm, 
+                    tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean)
+                  })}
+                  placeholder="news, community, warning..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Deadline (optional)
+                </label>
+                <input
+                  type="datetime-local"
+                  value={alertForm.deadline}
+                  onChange={(e) => setAlertForm({ ...alertForm, deadline: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setCreatingAlert(null)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveAlert}
+                disabled={createAlertMutation.isPending || !alertForm.token || !alertForm.title}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                <Bell className="w-4 h-4" />
+                Create Alert
               </button>
             </div>
           </div>

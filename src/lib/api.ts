@@ -90,6 +90,25 @@ export async function bulkDeleteNews(articleUrls: string[]): Promise<void> {
 }
 
 // ============================================
+// ALERT MANAGEMENT API
+// ============================================
+
+/**
+ * Create a new alert
+ */
+export async function createAlert(alert: {
+  token: string
+  title: string
+  body?: string
+  severity: 'critical' | 'warning' | 'info'
+  tags?: string[]
+  deadline?: string
+}): Promise<any> {
+  const { data } = await api.post('/admin/alerts', alert)
+  return data
+}
+
+// ============================================
 // ADMIN STATS API
 // ============================================
 

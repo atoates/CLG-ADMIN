@@ -26,6 +26,7 @@ export function NewsFeed() {
     severity: 'info' as 'critical' | 'warning' | 'info',
     tags: [] as string[],
     deadline: '',
+    source_url: '',
   })
 
   // Fetch news articles
@@ -132,10 +133,11 @@ export function NewsFeed() {
     setAlertForm({
       token: article.tickers[0] || '',
       title: article.title,
-      body: `${article.text || ''}\n\nSource: ${article.article_url}`,
+      body: article.text || '',
       severity: article.sentiment === 'negative' ? 'warning' : 'info',
       tags: article.sentiment === 'negative' ? ['news', 'warning'] : ['news'],
       deadline: '',
+      source_url: article.article_url,
     })
   }
 
@@ -156,6 +158,7 @@ export function NewsFeed() {
         severity: aiAlert.severity,
         tags: aiAlert.tags,
         deadline: aiAlert.deadline || '',
+        source_url: creatingAlert.article_url,
       })
       
       if (aiAlert.reasoning) {
@@ -179,7 +182,7 @@ export function NewsFeed() {
       severity: alertForm.severity,
       tags: alertForm.tags,
       deadline: alertForm.deadline || undefined,
-      source_url: creatingAlert.article_url,  // Include source URL to mark article as processed
+      source_url: alertForm.source_url || creatingAlert.article_url,  // Use form source_url or fallback to article URL
     })
   }
 
@@ -545,6 +548,22 @@ export function NewsFeed() {
                   onChange={(e) => setAlertForm({ ...alertForm, deadline: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Source URL
+                </label>
+                <input
+                  type="url"
+                  value={alertForm.source_url}
+                  onChange={(e) => setAlertForm({ ...alertForm, source_url: e.target.value })}
+                  placeholder="https://..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  readOnly
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Auto-populated from news article
+                </p>
               </div>
             </div>
             <div className="p-6 border-t border-gray-200 flex justify-end gap-3">

@@ -94,14 +94,9 @@ Respond ONLY with valid JSON, no markdown or explanation.`
 
     const generatedAlert = JSON.parse(content) as AIGeneratedAlert
 
-    // Ensure we have the source URL in the body
-    const bodyWithSource = generatedAlert.body.includes('Source:')
-      ? generatedAlert.body
-      : `${generatedAlert.body}\n\nSource: ${article.article_url}`
-
     return {
       ...generatedAlert,
-      body: bodyWithSource,
+      body: generatedAlert.body,  // Use AI body as-is, don't append source URL
       // Fallback to article data if AI didn't provide required fields
       token: generatedAlert.token || article.tickers[0] || 'BTC',
       title: generatedAlert.title || article.title.substring(0, 80),
@@ -113,7 +108,7 @@ Respond ONLY with valid JSON, no markdown or explanation.`
     return {
       token: article.tickers[0] || 'BTC',
       title: article.title.substring(0, 80),
-      body: `${article.text || article.title}\n\nSource: ${article.article_url}`,
+      body: article.text || article.title,
       severity: article.sentiment === 'negative' ? 'warning' : 'info',
       tags: ['news', article.sentiment || 'neutral'],
       reasoning: 'AI generation failed, using fallback',

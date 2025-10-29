@@ -1,5 +1,18 @@
 # Backend Implementation: News Article Alert Tracking
 
+## ✅ STATUS: COMPLETED & DEPLOYED
+
+**All backend changes have been implemented and deployed to production!**
+
+- ✅ Database migration 009 created and deployed
+- ✅ POST `/admin/alerts` endpoint updated to accept `source_url` and mark articles
+- ✅ GET `/admin/news/cache` endpoint updated to return `alert_created` field
+- ✅ Frontend integration ready and deployed
+
+**Deployment Date:** October 29, 2025
+
+---
+
 ## Overview
 Track which news articles have been converted to alerts by adding a field to the database and updating the relevant endpoints.
 
@@ -185,35 +198,55 @@ WHERE article_url IN (
 
 ## Testing Checklist
 
-- [ ] Database column added successfully
-- [ ] GET `/admin/news/cache` returns `alert_created` field
-- [ ] POST `/admin/alerts` marks source article when `source_url` provided
-- [ ] Check icon appears in frontend when article has `alert_created = true`
-- [ ] Creating alert from news article updates the database
-- [ ] Refreshing the page shows the check icon persists
+- [x] Database column added successfully
+- [x] GET `/admin/news/cache` returns `alert_created` field
+- [x] POST `/admin/alerts` marks source article when `source_url` provided
+- [x] Check icon appears in frontend when article has `alert_created = true`
+- [x] Creating alert from news article updates the database
+- [x] Refreshing the page shows the check icon persists
 
 ## Deployment Steps
 
-1. **Database Migration**
-   ```bash
-   # Run the ALTER TABLE command
-   psql $DATABASE_URL -c "ALTER TABLE news_cache ADD COLUMN alert_created BOOLEAN DEFAULT FALSE;"
-   psql $DATABASE_URL -c "CREATE INDEX idx_news_cache_alert_created ON news_cache(alert_created);"
-   ```
+### ✅ COMPLETED
 
-2. **Deploy Backend Code**
-   - Update POST `/admin/alerts` handler
-   - Update GET `/admin/news/cache` handler
-   - Deploy to Railway
+1. **Database Migration** ✅
+   - Migration 009 created: `009_add_alert_created_to_news.sql`
+   - Deployed to Railway and executed automatically
+   - Backfilled existing data by matching alerts.source_url
 
-3. **Deploy Frontend Code**
-   - Frontend updates will be pushed separately
-   - Will remove localStorage dependency
-   - Will use `alert_created` field from API
+2. **Backend Code Deployed** ✅
+   - POST `/admin/alerts` handler updated to accept and process source_url
+   - GET `/admin/news/cache` handler updated to return alert_created field
+   - Deployed to Railway: https://app.crypto-lifeguard.com
+
+3. **Frontend Code Deployed** ✅
+   - Frontend updated to use `alert_created` field from API
+   - localStorage dependency removed
+   - Deployed to Railway admin panel
+   - Check icons display correctly based on database state
 
 ## Questions?
 
-Contact the frontend team if you need clarification on:
-- The exact format of `source_url` in alert creation
-- How the frontend extracts the article URL
-- Testing coordination
+~~Contact the frontend team if you need clarification on:~~
+~~- The exact format of `source_url` in alert creation~~
+~~- How the frontend extracts the article URL~~
+~~- Testing coordination~~
+
+### ✅ ALL QUESTIONS RESOLVED - FEATURE COMPLETE
+
+**How It Works Now:**
+1. User clicks Bell icon on news article in admin panel
+2. Frontend creates alert via POST `/admin/alerts` with `source_url` = article URL
+3. Backend creates alert AND marks `news_cache.alert_created = TRUE`
+4. Frontend refetches news cache and shows green check icon
+5. Check icon persists across all devices and sessions (database-backed)
+
+**Backend Logs to Monitor:**
+```
+[Admin Alerts] Marked news article as processed: https://example.com/article
+```
+
+**Frontend Implementation:**
+- Uses `article.alert_created` field to show CheckCircle2 icon
+- Passes `creatingAlert.article_url` as `source_url` when creating alert
+- Invalidates news cache after alert creation to refetch updated status

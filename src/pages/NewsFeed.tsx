@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Newspaper, RefreshCw, Trash2, Edit2, Search, Filter, X, Save, Bell } from 'lucide-react'
+import { Newspaper, RefreshCw, Trash2, Edit2, Search, Filter, X, Save, Bell, CheckCircle2 } from 'lucide-react'
 import { fetchNewsCache, fetchNewsStats, updateNewsArticle, deleteNewsArticle, refreshNewsCache, createAlert } from '../lib/api'
 import type { NewsArticle } from '../types'
 
@@ -10,6 +10,7 @@ export function NewsFeed() {
   const [searchQuery, setSearchQuery] = useState('')
   const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null)
   const [creatingAlert, setCreatingAlert] = useState<NewsArticle | null>(null)
+  const [processedArticles, setProcessedArticles] = useState<Set<string>>(new Set())
   const [editForm, setEditForm] = useState({
     title: '',
     text: '',
@@ -24,6 +25,25 @@ export function NewsFeed() {
     tags: [] as string[],
     deadline: '',
   })
+
+  // Load processed articles from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('processedNewsArticles')
+    if (stored) {
+      try {
+        setProcessedArticles(new Set(JSON.parse(stored)))
+      } catch (e) {
+        console.error('Failed to load processed articles:', e)
+      }
+    }
+  }, [])
+
+  // Save processed articles to localStorage whenever it changes
+  useEffect(() => {
+    if (processedArticles.size > 0) {
+      localStorage.setItem('processedNewsArticles', JSON.stringify([...processedArticles]))
+    }
+  }, [processedArticles])
 
   // Fetch news articles
   const { data: articles = [], isLoading } = useQuery({
@@ -70,6 +90,10 @@ export function NewsFeed() {
     mutationFn: createAlert,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] })
+      // Mark the article as processed
+      if (creatingAlert) {
+        setProcessedArticles(prev => new Set([...prev, creatingAlert.article_url]))
+      }
       setCreatingAlert(null)
       alert('Alert created successfully!')
     },
@@ -279,13 +303,23 @@ export function NewsFeed() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleCreateAlert(article)}
-                      className="p-2 text-gray-600 hover:text-green-600 hover:bg-gray-100 rounded"
-                      title="Create alert from this article"
-                    >
-                      <Bell className="w-4 h-4" />
-                    </button>
+                    {processedArticles.has(article.article_url) ? (
+                      <button
+                        className="p-2 text-green-600 bg-green-50 rounded cursor-default"
+                        title="Alert already created from this article"
+                        disabled
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleCreateAlert(article)}
+                        className="p-2 text-gray-600 hover:text-green-600 hover:bg-gray-100 rounded"
+                        title="Create alert from this article"
+                      >
+                        <Bell className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => handleEdit(article)}
                       className="p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded"

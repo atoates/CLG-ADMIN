@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Newspaper, RefreshCw, Trash2, Edit2, Search, Filter, X, Save, Bell, CheckCircle2 } from 'lucide-react'
+import { Newspaper, RefreshCw, Trash2, Edit2, Search, Filter, X, Save, Bell, CheckCircle2, Sparkles } from 'lucide-react'
 import { fetchNewsCache, fetchNewsStats, updateNewsArticle, deleteNewsArticle, refreshNewsCache, createAlert } from '../lib/api'
+import { generateAlertFromNews, isAIEnabled } from '../lib/aiAlertGenerator'
 import type { NewsArticle } from '../types'
 
 export function NewsFeed() {
@@ -10,6 +11,8 @@ export function NewsFeed() {
   const [searchQuery, setSearchQuery] = useState('')
   const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null)
   const [creatingAlert, setCreatingAlert] = useState<NewsArticle | null>(null)
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false)
+  const [aiReasoning, setAiReasoning] = useState<string>('')
   const [editForm, setEditForm] = useState({
     title: '',
     text: '',
@@ -124,7 +127,8 @@ export function NewsFeed() {
   // Handle create alert from news
   const handleCreateAlert = (article: NewsArticle) => {
     setCreatingAlert(article)
-    // Pre-populate form with article data
+    setAiReasoning('')
+    // Pre-populate form with article data (basic mode)
     setAlertForm({
       token: article.tickers[0] || '',
       title: article.title,
@@ -133,6 +137,36 @@ export function NewsFeed() {
       tags: article.sentiment === 'negative' ? ['news', 'warning'] : ['news'],
       deadline: '',
     })
+  }
+
+  // Handle AI-assisted alert generation
+  const handleGenerateWithAI = async () => {
+    if (!creatingAlert) return
+    
+    setIsGeneratingAI(true)
+    setAiReasoning('')
+    
+    try {
+      const aiAlert = await generateAlertFromNews(creatingAlert)
+      
+      setAlertForm({
+        token: aiAlert.token,
+        title: aiAlert.title,
+        body: aiAlert.body,
+        severity: aiAlert.severity,
+        tags: aiAlert.tags,
+        deadline: aiAlert.deadline || '',
+      })
+      
+      if (aiAlert.reasoning) {
+        setAiReasoning(aiAlert.reasoning)
+      }
+    } catch (error) {
+      console.error('AI generation failed:', error)
+      alert('AI generation failed. Please try again or edit manually.')
+    } finally {
+      setIsGeneratingAI(false)
+    }
   }
 
   const handleSaveAlert = () => {
@@ -416,6 +450,27 @@ export function NewsFeed() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* AI Generation Button */}
+            {isAIEnabled() && (
+              <div className="px-6 pt-4 pb-2 bg-gradient-to-r from-purple-50 to-blue-50 border-b border-purple-100">
+                <button
+                  onClick={handleGenerateWithAI}
+                  disabled={isGeneratingAI}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 py-3 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Sparkles className={`w-5 h-5 ${isGeneratingAI ? 'animate-spin' : ''}`} />
+                  {isGeneratingAI ? 'AI is analyzing article...' : 'Generate Smart Alert with AI'}
+                </button>
+                {aiReasoning && (
+                  <div className="mt-3 p-3 bg-white rounded-lg border border-purple-200">
+                    <p className="text-xs font-semibold text-purple-900 mb-1">AI Reasoning:</p>
+                    <p className="text-sm text-gray-700">{aiReasoning}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

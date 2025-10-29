@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import { Bell, Search, Filter, Plus, Pencil, Trash2, AlertTriangle, Info, AlertCircle, X, Upload, Download, FileText } from 'lucide-react'
+import { Bell, Search, Filter, Plus, Pencil, Trash2, AlertTriangle, Info, AlertCircle, X, Upload, Download, FileText, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 
 interface Alert {
   id: string
@@ -19,6 +19,7 @@ interface Alert {
 export function Alerts() {
   const [searchTerm, setSearchTerm] = useState('')
   const [severityFilter, setSeverityFilter] = useState<string>('all')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null)
   const [editingAlert, setEditingAlert] = useState<Alert | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
@@ -159,6 +160,30 @@ export function Alerts() {
     return matchesSearch && matchesSeverity
   })
 
+  // Sort alerts by deadline if sort order is set
+  const sortedAlerts = filteredAlerts ? [...filteredAlerts].sort((a, b) => {
+    if (!sortOrder) return 0
+    
+    const dateA = a.deadline ? new Date(a.deadline).getTime() : 0
+    const dateB = b.deadline ? new Date(b.deadline).getTime() : 0
+    
+    if (sortOrder === 'asc') {
+      return dateA - dateB
+    } else {
+      return dateB - dateA
+    }
+  }) : filteredAlerts
+
+  const handleSortToggle = () => {
+    if (sortOrder === null) {
+      setSortOrder('desc') // First click: newest first
+    } else if (sortOrder === 'desc') {
+      setSortOrder('asc') // Second click: oldest first
+    } else {
+      setSortOrder(null) // Third click: reset to default
+    }
+  }
+
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'critical':
@@ -275,7 +300,7 @@ export function Alerts() {
               API: {import.meta.env.VITE_API_URL || 'http://localhost:3000'}
             </div>
           </div>
-        ) : filteredAlerts && filteredAlerts.length > 0 ? (
+        ) : sortedAlerts && sortedAlerts.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -293,7 +318,15 @@ export function Alerts() {
                     Description
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
+                    <button
+                      onClick={handleSortToggle}
+                      className="flex items-center gap-1 hover:text-gray-700 transition"
+                    >
+                      Created
+                      {sortOrder === 'asc' && <ArrowUp className="w-4 h-4" />}
+                      {sortOrder === 'desc' && <ArrowDown className="w-4 h-4" />}
+                      {sortOrder === null && <ArrowUpDown className="w-4 h-4 opacity-50" />}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -301,7 +334,7 @@ export function Alerts() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredAlerts.map((alert) => (
+                {sortedAlerts.map((alert) => (
                   <tr key={alert.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
